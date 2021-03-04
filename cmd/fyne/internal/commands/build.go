@@ -23,7 +23,10 @@ func (b *builder) build() error {
 	args := []string{"build"}
 	env := append(os.Environ(), "CGO_ENABLED=1") // in case someone is trying to cross-compile...
 	if goos == "darwin" {
-		env = append(env, "CGO_CFLAGS=-mmacosx-version-min=10.11", "CGO_LDFLAGS=-mmacosx-version-min=10.11")
+		// allow user to set target OS version. Both vars must be set by user.
+		if !isSet(env, "CGO_CFLAGS") || !isSet(env, "CGO_LDFLAGS") {
+			env = append(env, "CGO_CFLAGS=-mmacosx-version-min=10.11", "CGO_LDFLAGS=-mmacosx-version-min=10.11")
+		}
 	}
 
 	if goos == "windows" {
@@ -66,4 +69,14 @@ func targetOS() string {
 	}
 
 	return runtime.GOOS
+}
+
+func isSet(env []string, s string) bool {
+	key := s + "="
+	for _, e := range env {
+		if strings.HasPrefix(e, key) {
+			return true
+		}
+	}
+	return false
 }
