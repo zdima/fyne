@@ -802,6 +802,13 @@ func (w *window) mouseClicked(_ *glfw.Window, btn glfw.MouseButton, action glfw.
 
 	if action == glfw.Release && mouseDragged != nil {
 		if mouseDragStarted {
+			// notify target in window when button released
+			for _, wnd := range fyne.CurrentApp().Driver().AllWindows() {
+				if wnd, ok := wnd.(interface{}).(*window); ok {
+					wnd.SendDragDropNotification(w.mouseDragged)
+				}
+			}
+
 			w.QueueEvent(mouseDragged.DragEnd)
 			w.mouseLock.Lock()
 			w.mouseDragStarted = false
@@ -1518,4 +1525,28 @@ func isKeyModifier(keyName fyne.KeyName) bool {
 		keyName == desktop.KeyControlLeft || keyName == desktop.KeyControlRight ||
 		keyName == desktop.KeyAltLeft || keyName == desktop.KeyAltRight ||
 		keyName == desktop.KeySuperLeft || keyName == desktop.KeySuperRight
+}
+
+func (w *window) SendDragDropNotification(sender fyne.Draggable) {
+	if !w.visible {
+		return
+	}
+	xpos, ypos := w.viewport.GetCursorPos()
+	newMousePos := fyne.NewPos(internal.UnscaleInt(w.canvas, int(xpos)), internal.UnscaleInt(w.canvas, int(ypos)))
+	ww, wh := w.viewport.GetSize()
+	// verify the mouse pointer is within the viewport bound
+	if newMousePos.X > 0 && newMousePos.X < float32(ww) && newMousePos.Y > 0 && newMousePos.Y < float32(wh) {
+		// find DragReceiver at a mouse possition
+		obj, _, _ := w.findObjectAtPositionMatching(w.canvas, newMousePos, func(object fyne.CanvasObject) bool {
+			if _, ok := object.(desktop.DragReceiver); ok {
+				return true
+			}
+			return false
+		})
+
+		if obj != nil {
+			obj := obj.(desktop.DragReceiver)
+			w.QueueEvent(func() { obj.DragDrop(sender) })
+		}
+	}
 }
