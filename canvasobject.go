@@ -73,6 +73,17 @@ type Draggable interface {
 	DragEnd()
 }
 
+// DragReceiver indicates that a CanvasObject can receive drop from a drag&drop.
+// This is used to receive information from the Draggable object.
+type DragReceiver interface {
+	DragDrop(Draggable)
+}
+
+// DragSource indicates the an object can supply data during drop operation.
+type DragSource interface {
+	DragData() interface{}
+}
+
 // Focusable describes any CanvasObject that can respond to being focused.
 // It will receive the FocusGained and FocusLost events appropriately.
 // When focused it will also have TypedRune called as text is input and

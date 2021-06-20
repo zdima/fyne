@@ -358,6 +358,17 @@ func (d *mobileDriver) tapUpCanvas(w *window, x, y float32, tapID touch.Sequence
 	}, func(wid fyne.DoubleTappable, ev *fyne.PointEvent) {
 		w.QueueEvent(func() { wid.DoubleTapped(ev) })
 	}, func(wid fyne.Draggable) {
+		obj, _, _ := w.canvas.findObjectAtPositionMatching(pos, func(object fyne.CanvasObject) bool {
+			if _, ok := object.(fyne.DragReceiver); ok {
+				return true
+			}
+			return false
+		})
+		if obj != nil {
+			obj := obj.(fyne.DragReceiver)
+			w.QueueEvent(func() { obj.DragDrop(wid) })
+		}
+
 		w.QueueEvent(wid.DragEnd)
 	})
 }
