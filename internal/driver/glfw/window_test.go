@@ -585,7 +585,7 @@ func TestWindow_HandleDragDrop(t *testing.T) {
 	assert.NotNil(t, d2.popDragEndEvent())
 	data := d3.popDrop()
 	assert.NotNil(t, data)
-	assert.Equal(t, "data 2", data.(fyne.DragSource).DragData())
+	assert.Equal(t, "data 2", data.(fyne.DragInfo).Payload())
 }
 func TestWindow_DragObjectThatMoves(t *testing.T) {
 	w := createWindow("Test").(*window)
@@ -1460,7 +1460,7 @@ func (d *droppable) popDrop() (e interface{}) {
 }
 
 var _ fyne.Draggable = (*draggable)(nil)
-var _ fyne.DragSource = (*draggable)(nil)
+var _ fyne.DragInfo = (*draggable)(nil)
 
 type draggable struct {
 	data      string
@@ -1486,7 +1486,7 @@ func (d *draggable) popDragEndEvent() (e interface{}) {
 	return
 }
 
-func (d *draggable) DragData() interface{} {
+func (d *draggable) Payload() fyne.DragPayload {
 	return d.data
 }
 

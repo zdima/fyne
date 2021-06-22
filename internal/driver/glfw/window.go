@@ -803,18 +803,22 @@ func (w *window) mouseClicked(_ *glfw.Window, btn glfw.MouseButton, action glfw.
 	if action == glfw.Release && mouseDragged != nil {
 		if mouseDragStarted {
 			// notify target in window when button released
-			// during tests the w is not part of the AllWindows(). will check if notify sent to self
-			notifySelf := true
-			for _, wnd := range fyne.CurrentApp().Driver().AllWindows() {
-				if wnd == w {
-					notifySelf = false
+			if !w.sendDropNotification(mousePos, w.mouseDragged) {
+				// the mouse point to another window. try find that window
+				wlist := sortZOrder(fyne.CurrentApp().Driver().AllWindows())
+				for _, wnd := range wlist {
+					if wnd == w {
+						continue
+					}
+					if wnd, ok := wnd.(interface{}).(*window); ok {
+						xpos, ypos := wnd.viewport.GetCursorPos()
+						mousePos := fyne.NewPos(internal.UnscaleInt(wnd.canvas, int(xpos)), internal.UnscaleInt(wnd.canvas, int(ypos)))
+						if wnd.sendDropNotification(mousePos, w.mouseDragged) {
+							// found window where mouse pointer
+							break
+						}
+					}
 				}
-				if wnd, ok := wnd.(interface{}).(fyne.DropNotificationWindow); ok {
-					wnd.SendDragDropNotification(mousePos, w.mouseDragged)
-				}
-			}
-			if notifySelf {
-				w.SendDragDropNotification(mousePos, w.mouseDragged)
 			}
 
 			w.QueueEvent(mouseDragged.DragEnd)
@@ -1462,6 +1466,7 @@ func (w *window) create() {
 		win.SetKeyCallback(w.keyPressed)
 		win.SetCharCallback(w.charInput)
 		win.SetFocusCallback(w.focused)
+		win.SetDropCallback(w.receiveDrop)
 
 		w.canvas.detectedScale = w.detectScale()
 		w.canvas.scale = w.calculatedScale()
@@ -1535,18 +1540,40 @@ func isKeyModifier(keyName fyne.KeyName) bool {
 		keyName == desktop.KeySuperLeft || keyName == desktop.KeySuperRight
 }
 
-func (w *window) SendDragDropNotification(newMousePos fyne.Position, sender fyne.Draggable) bool {
+var _ fyne.DragInfo = (*urlDropInfo)(nil)
+var _ fyne.Draggable = (*urlDropInfo)(nil)
+
+type urlDropInfo struct {
+	names []string
+}
+
+func (u *urlDropInfo) Payload() fyne.DragPayload {
+	return u.names
+}
+func (u *urlDropInfo) Dragged(*fyne.DragEvent) {}
+func (u *urlDropInfo) DragEnd()                {}
+
+func (w *window) receiveDrop(gw *glfw.Window, names []string) {
+	xpos, ypos := w.viewport.GetCursorPos()
+	mousePos := fyne.NewPos(internal.UnscaleInt(w.canvas, int(xpos)), internal.UnscaleInt(w.canvas, int(ypos)))
+
+	w.sendDropNotification(mousePos, &urlDropInfo{names: names})
+}
+
+// sendDropNotification verify if mousePos belong to this window and there is canvas object of fyne.DragReceiver
+// Return true when mousePos belong to window.
+func (w *window) sendDropNotification(mousePos fyne.Position, sender fyne.Draggable) bool {
 	// during tests the window is not visible
 	if !w.visible && fyne.CurrentApp().UniqueID() != "testApp" {
 		return false
 	}
 	ww, wh := w.viewport.GetSize()
 	// verify the mouse pointer is within the viewport bound
-	if newMousePos.X < 0 || newMousePos.X > float32(ww) || newMousePos.Y < 0 || newMousePos.Y > float32(wh) {
+	if mousePos.X < 0 || mousePos.X > float32(ww) || mousePos.Y < 0 || mousePos.Y > float32(wh) {
 		return false
 	}
 	// find DragReceiver at a mouse possition
-	obj, _, _ := w.findObjectAtPositionMatching(w.canvas, newMousePos, func(object fyne.CanvasObject) bool {
+	obj, _, _ := w.findObjectAtPositionMatching(w.canvas, mousePos, func(object fyne.CanvasObject) bool {
 		if _, ok := object.(fyne.DragReceiver); ok {
 			return true
 		}

@@ -94,8 +94,3 @@ type Window interface {
 	// Clipboard returns the system clipboard
 	Clipboard() Clipboard
 }
-
-// DropNotificationWindow indicates the window can response to SendDragDropNotification events used during DaD
-type DropNotificationWindow interface {
-	SendDragDropNotification(Position, Draggable) bool
-}

@@ -79,10 +79,14 @@ type DragReceiver interface {
 	DragDrop(Draggable)
 }
 
-// DragSource indicates the an object can supply data during drop operation.
-type DragSource interface {
-	DragData() interface{}
+// DragInfo indicates the an object can supply data during drop operation.
+type DragInfo interface {
+	Payload() DragPayload
 }
+
+type DragPayload interface{}
+type DragPayloadString string
+type DragPayloadSliceOfString []string
 
 // Focusable describes any CanvasObject that can respond to being focused.
 // It will receive the FocusGained and FocusLost events appropriately.
