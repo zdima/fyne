@@ -85,8 +85,6 @@ type DragInfo interface {
 }
 
 type DragPayload interface{}
-type DragPayloadString string
-type DragPayloadSliceOfString []string
 
 // Focusable describes any CanvasObject that can respond to being focused.
 // It will receive the FocusGained and FocusLost events appropriately.
